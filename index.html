@@ -582,7 +582,8 @@ function successCallback(position) {
     } else if (heading >= 247.5 && heading < 292.5) {
       NESW = "西";   //西
     } else if (heading >= 292.5 && heading < 337.5) {
-      NESW = "";  //北西
+      NESW = "北西";  //北西
+
     }
     
     document.getElementById('headingInfo').innerHTML = NESW + " " + parseInt(heading) + "°";
