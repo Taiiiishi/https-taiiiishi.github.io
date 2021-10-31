@@ -568,21 +568,21 @@ function successCallback(position) {
     //方角記号（8方向）を判定
     var NESW = "";
     if (heading >= 337.5 || heading < 22.5) {
-      NESW = "N";   //北
+      NESW = "北";   //北
     } else if (heading >= 22.5 && heading < 67.5) {
-      NESW = "NE";  //北東
+      NESW = "北東";  //北東
     } else if (heading >= 67.5 && heading < 112.5) {
-      NESW = "E";   //東
+      NESW = "東";   //東
     } else if (heading >= 112.5 && heading < 157.5) {
-      NESW = "SE";  //南東
+      NESW = "南東";  //南東
     } else if (heading >= 157.5 && heading < 202.5) {
-      NESW = "S";   //南
+      NESW = "南";   //南
     } else if (heading >= 202.5 && heading < 247.5) {
-      NESW = "SW";  //南西
+      NESW = "南西";  //南西
     } else if (heading >= 247.5 && heading < 292.5) {
-      NESW = "W";   //西
+      NESW = "西";   //西
     } else if (heading >= 292.5 && heading < 337.5) {
-      NESW = "NW";  //北西
+      NESW = "北西";  //北西
     }
     
     document.getElementById('headingInfo').innerHTML = NESW + " " + parseInt(heading) + "°";
