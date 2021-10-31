@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="./test01.css">
+    <title></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    
+</head>
+
+<body>
+    <script src="https://code.createjs.com/createjs-2015.11.26.min.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?libraries=geometry&key=AIzaSyDHO9-1s5Neih_IrS0nkrI7k_6aZA71jVU"></script>
+<script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+<script src="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
+<link rel="stylesheet" href="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css">
+
+
+<div data-role="page">
+  <div data-role="header">
+  <!-- ヘッダー -->
+    <div class="ui-field-contain">
+      <div class="ui-grid-a">
+        <div class="ui-block-a">
+          <input type="text" id="addressInput" value="赤羽駅" placeholder="目的地を入力" data-mini="true" data-clear-btn="true">
+        </div>
+        <div class="ui-block-b">
+          <input type="button" value="ナビ開始" onclick="naviStart()">
+          <input type="button" value="ナビ停止" onclick="naviStop()">
+        </div>
+      </div>
+    </div>
+  </div>
+  <div role="main" class="ui-content">
+  <!-- メイン -->
+
+    <div style="width:260px; margin:0 auto">
+      <canvas id="myCanvas" width="260" height="300"></canvas>
+    </div>
+    <div id="distanceInfo"
+     style="width:100%; height:20px; font-size:20px; text-align:center;"></div>
+    <div id="headingInfo"
+     style="width:100%; height:15px; font-size:15px; text-align:center; padding-top:10px;"></div>
+    <div class="ui-field-contain">
+      <div class="ui-grid-b">
+        <div class="ui-block-a"></div>
+        <div class="ui-block-b" style="text-align:right; vertical-align:middle">
+          <label for="sound-on-off" style="margin:10px">サウンド</label>
+        </div>
+        <div class="ui-block-c">
+          <input type="checkbox" id="sound-on-off" data-role="flipswitch" checked="true">
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<script type="text/javascript">
+
+/*=========================================================
+ レーダー表示処理
+===========================================================*/
+var stage;  //Stageオブジェクト
+var shpPoint;  //目的地Shape
+var shpPoint2; //目的地Shape2（アニメーション部分）
+var shpCenter; //中心点Shape
+
+var circleX = 130;  //円の中央点X座標
+var circleY = 170;  //円の中央点Y座標
+var radius = 100;  //円の半径
+var validRange = 85;  //有効範囲
+var maxRange = 90;  //最大範囲
+
+var shpLine = new Array();  //枠線Shape配列
+
+var currentFPS;  //現在のフレームレート
+var currentDistance;  //現在の距離
+var currentScaleType; //現在のスケール種類
+
+window.addEventListener("load", init);
+
+/*
+ 初期処理
+*/
+function init() {
+  //Stageオブジェクトを作成
+  stage = new createjs.Stage("myCanvas");
+  //音声ファイル読み込み
+  createjs.Sound.registerSound("dr.mp3", "sound1");
+  createjs.Sound.registerSound("dr2.mp3", "sound2");
+  createjs.Sound.registerSound("dr3.mp3", "sound3");
+  //ベースのデザインを作成
+  createBaseDesign();
+  //円の中の枠線を作成
+  currentScaleType = 2;
+  drawLineInCircle();
+  //位置表示Shapeを作成
+  createPoint();
+  //Stageの描画を更新
+  stage.update();
+}
+/*
+ ベースのデザインを作成
+*/
+function createBaseDesign() {
+  var shape1 = new createjs.Shape();
+  shape1.graphics.beginLinearGradientFill(["#008500","#003500"], [0.1,1.0], 130, 70, 200, 270);
+  shape1.graphics.drawCircle(130, 170, 100);
+  stage.addChild(shape1);
+  
+}
+
+/*
+ 円の中に枠線を引く
+*/
+function drawLineInCircle(){
+  //円の中に垂直線を引く
+  verticalLineInCircle();
+  //円の中に水平線を引く
+  horizonLineInCircle();
+}
+/*
+ 円の中の枠線をクリア
+*/
+function clearLineInCircle(){
+  for (var i = 0; i < shpLine.length; i++) {
+      var shp = shpLine[i];
+      stage.removeChild(shp);
+  }
+  shpLine.length = 0;
+}
+/*
+ 円の中に垂直線を引く
+*/
+function verticalLineInCircle()
+{
+  var startX = 0;  //垂直線の開始X座標
+  var increment = 20;  //垂直線の間隔
+  
+  switch (currentScaleType) {
+    case 1:
+    //長距離
+      startX = 40;
+      increment = 10;
+      break;
+    case 2:
+    //中距離
+      startX = 40;
+      increment = 20;
+      break;
+    case 3:
+    //近距離
+      startX = 40;
+      increment = 30;
+      break;
+    case 4:
+    //短距離
+      startX = 50;
+      increment = 40;
+      break;
+  }
+  
+  var n = 0;
+  while (true)
+  {
+    //X座標を決める
+    var x = startX + increment * n;
+    //X座標が円の外側の場合ループ終了
+    if (x >= circleX + radius) break;
+    //直角三角形の底辺aと斜辺cから、垂直線bの長さを求める
+    //底辺aの長さを求める
+    var a = Math.abs(circleX - x);
+    //斜辺cは円の半径とイコール
+    var c = radius;
+    //三平方の定理「c^2 = a^2 + b^2」より
+    //⇒ b = √(c^2 - a^2)
+    var b = Math.sqrt(c * c - a * a);
+    //Y座標を求める（上と下の2点）
+    var y1 = circleY - b;
+    var y2 = circleY + b;
+    //垂直線を引く
+    var shp = new createjs.Shape();
+    shp.graphics.beginStroke("forestgreen");
+    shp.graphics.setStrokeStyle(2);
+    shp.graphics.moveTo(x, y1);
+    shp.graphics.lineTo(x, y2);
+    stage.addChild(shp);
+    //枠線Shape配列に記憶
+    shpLine.push(shp);
+    //次の垂直線のために、変数nをカウントアップ
+    n++;
+  }
+}
+/*
+ 円の中に水平線を引く
+*/
+function horizonLineInCircle()
+{
+  var startY = 0;  //水平線の開始Y座標
+  var increment = 20;  //水平線の間隔
+  
+  switch (currentScaleType) {
+    case 1:
+    //長距離
+      startY = 80;
+      increment = 10;
+      break;
+    case 2:
+    //中距離
+      startY = 80;
+      increment = 20;
+      break;
+    case 3:
+    //短距離
+      startY = 80;
+      increment = 30;
+      break;
+    case 4:
+    //近距離
+      startY = 90;
+      increment = 40;
+      break;
+  }
+  
+  var n = 0;
+  while (true)
+  {
+    //Y座標を決める
+    var y = startY + increment * n;
+    //Y座標が円の外側の場合ループ終了
+    if (y >= circleY + radius) break;
+    //直角三角形の底辺aと斜辺cから、水平線bの長さを求める
+    //底辺aの長さを求める
+    var a = Math.abs(circleY - y);
+    //斜辺cは円の半径とイコール
+    var c = radius;
+    //三平方の定理「c^2 = a^2 + b^2」より
+    //⇒ b = √(c^2 - a^2)
+    var b = Math.sqrt(c * c - a * a);
+    //X座標を求める（左と右の2点）
+    var x1 = circleX - b;
+    var x2 = circleX + b;
+    //水平線を引く
+    var shp = new createjs.Shape();
+    shp.graphics.beginStroke("forestgreen");
+    shp.graphics.setStrokeStyle(2);
+    shp.graphics.moveTo(x1, y);
+    shp.graphics.lineTo(x2, y);
+    stage.addChild(shp);
+    //枠線Shape配列に記憶
+    shpLine.push(shp);
+    //次の水平線のために、変数nをカウントアップ
+    n++;
+  }
+}
+/*
+ 位置表示Shapeを作成
+*/
+function createPoint() {
+  //目的地Shapeを作成
+  shpPoint = new createjs.Shape();
+  shpPoint.graphics.beginStroke("orange");
+  shpPoint.graphics.beginFill("orange");
+  shpPoint.graphics.setStrokeStyle(1);
+  shpPoint.graphics.drawCircle(0, 0, 5);
+  shpPoint.x = circleX;
+  shpPoint.y = circleY;
+  shpPoint.visible = false;
+  stage.addChild(shpPoint);
+  //目的地Shapeのアニメーション部分を作成
+  shpPoint2 = new createjs.Shape();
+  shpPoint2.graphics.beginStroke("orange");
+  shpPoint2.graphics.setStrokeStyle(1);
+  shpPoint2.graphics.drawCircle(0, 0, 5);
+  shpPoint2.x = circleX;
+  shpPoint2.y = circleY;
+  shpPoint2.scaleX = 1;
+  shpPoint2.scaleY = 1;
+  shpPoint2.visible = false;
+  stage.addChild(shpPoint2);
+  //中心点Shapeを作成
+  shpCenter = new createjs.Shape();
+  shpCenter.graphics.beginFill("red");
+  shpCenter.graphics.moveTo(130, 160);
+  shpCenter.graphics.lineTo(120, 180);
+  shpCenter.graphics.lineTo(140,  180);
+  shpCenter.graphics.lineTo(130, 160);
+  stage.addChild(shpCenter);
+}
+/*
+ 目的地Shapeのアニメーション処理
+*/
+function pointAnimation(){
+  
+  //目的地Shepeの輪っかを少しずつ拡大する
+  shpPoint2.scaleX += 0.1;
+  shpPoint2.scaleY += 0.1;
+  if (shpPoint2.scaleX > 2.5){
+  //2.5倍を超えると、1倍に戻す
+    shpPoint2.scaleX = 1;
+    shpPoint2.scaleY = 1;
+  }
+  //Stageの描画を更新
+  stage.update();
+  
+  if (shpPoint2.scaleX != 1){
+    return;
+  }
+  
+  //サウンド停止
+  createjs.Sound.stop();
+  
+  var soundType;
+  if (shpPoint2.visible == true) {
+    if (currentScaleType == 4) {
+    //短距離
+      //アニメーション設定（ゆっくり速度）
+      setAnimationFPS(8);
+      if (currentDistance <= 0.05) {
+      //50m以内の場合
+        //サウンド選択（3つ目のサウンド）
+        soundType = "sound3";
+      }
+      else {
+        //サウンド選択（2つ目のサウンド）
+        soundType = "sound2";
+      }
+    }
+    else {
+      //アニメーション設定（通常速度）
+      setAnimationFPS(15);
+      //サウンド選択（1つ目のサウンド）
+      soundType = "sound1";
+    }
+    
+    //サウンドONの場合、サウンドの再生
+    if ($('#sound-on-off').prop('checked') == true) {
+      createjs.Sound.play(soundType, {volume:0.6});
+    }
+  }
+}
+/*
+ アニメーション設定
+  fps: フレームレート
+*/
+function setAnimationFPS(fps){
+  if (currentFPS != fps){
+    //フレームレートを変更する前に、リスナーを全部削除してタイマを止める
+    createjs.Ticker.reset();
+    //フレームレートを変更
+    currentFPS = fps;
+    createjs.Ticker.setFPS(currentFPS);
+    //tickイベントにアニメーション処理のリスナーを登録
+    createjs.Ticker.addEventListener('tick', pointAnimation);
+  }
+}
+/*
+ 位置表示Shapeを前面表示
+*/
+function pointBringForward(){
+  //中心点Shapeを前面に表示
+  stage.setChildIndex(shpCenter,(stage.getNumChildren())-1);
+  //目的地Shapeを前面に表示
+  stage.setChildIndex(shpPoint,(stage.getNumChildren())-1);
+  stage.setChildIndex(shpPoint2,(stage.getNumChildren())-1);
+}
+/*
+ 位置表示をクリア
+*/
+function clearPosition(){
+  //円の中の枠線をクリア
+  clearLineInCircle();
+  //円の中に枠線を引く
+  currentScaleType = 2;
+  drawLineInCircle();
+  //位置表示Shapeを前面表示
+  pointBringForward();
+  //目的地Shapeを非表示にする
+  shpPoint.visible = false;
+  shpPoint2.visible = false;
+  //表示情報クリア
+  document.getElementById("distanceInfo").innerHTML = "";
+  document.getElementById("headingInfo").innerHTML = "";
+}
+/*
+ 目的地Shapeの位置を設定
+   distance: 距離（km）
+   heading: 方角（0～360°）
+*/
+function setPoint(distance, heading){
+  //ラジアンに変換
+  //上が0°になっているため、90°プラス
+  var radian = (heading - 90) * (Math.PI / 180);
+  
+  var maxDistance;
+  var scaleType;
+  if (distance > 5) {
+  //長距離
+    scaleType = 1;
+    //最大距離は最初に取得した距離
+    maxDistance = firstDistance;
+  }
+  else if (distance > 1 && distance <= 5) {
+  //中距離
+    scaleType = 2;
+    //最大距離は5km
+    maxDistance = 5;
+  }
+  else if (distance > 0.3 && distance <= 3) {
+  //近距離
+    scaleType = 3;
+    //最大距離は3km
+    maxDistance = 3;
+  }
+  else {
+  //短距離
+    scaleType = 4;
+    //最大距離は0.3km
+    maxDistance = 0.3;
+  }
+  
+  //現在の距離を記憶
+  currentDistance = distance;
+  
+  if (scaleType != currentScaleType) {
+    //円の中の枠線をクリア
+    clearLineInCircle();
+    //円の中に枠線を引く
+    currentScaleType = scaleType;
+    drawLineInCircle();
+    //位置表示Shapeを前面表示
+    pointBringForward();
+  }
+  
+  //目的地Shapeの表示座標を求める
+  
+  //最大距離と実際の距離の割合から、有効範囲内での距離を求める（斜辺の長さ）
+  var c = validRange * (distance / maxDistance);
+  //目的地ShapeのX座標を求める（三角関数：x = c * cosθ）
+  var x = circleX + c * Math.cos(radian);
+  //目的地ShapeのY座標を求める（三角関数：y = c * sinθ）
+  var y = circleY + c * Math.sin(radian);
+  
+  if (c > maxRange) {
+  //最大範囲を超えた場合は非表示にする
+    shpPoint.visible = false;
+    shpPoint2.visible = false;
+  }
+  else {
+    shpPoint.x = x;
+    shpPoint.y = y;
+    shpPoint2.x = x;
+    shpPoint2.y = y;
+    shpPoint.visible = true;
+    shpPoint2.visible = true;
+  }
+}
+
+
+/*=========================================================
+ ナビエンジン
+===========================================================*/
+var latLng = new Array();  //緯度・経度情報
+var firstDistance = 0;     //最初に取得した距離
+var watchId;               //監視ID
+
+/*
+ ナビ開始
+*/
+function naviStart(){
+  //ナビ停止
+  naviStop();
+  
+  //緯度・経度取得
+  getIdoKeido();
+  
+  //■アニメーション設定（通常速度）
+  setAnimationFPS(15);
+}
+/*
+ ナビ停止
+*/
+function naviStop(){
+  //初期化
+  latLng = new Array(2);
+  firstDistance = 0;
+  
+  //現在位置取得停止
+  stopWatchPosition(watchId);
+  
+  //■位置表示クリア
+  clearPosition();
+}
+/*
+ 緯度・経度取得
+*/
+function getIdoKeido() {
+  var addressInput = document.getElementById('addressInput').value;
+  if (addressInput == "") {
+    return;
+  }
+  
+  //目的地の位置情報を取得
+  var geocoder = new google.maps.Geocoder();
+  geocoder.geocode(
+    {
+      address: addressInput
+    },
+    function(results, status) {
+      if (status == google.maps.GeocoderStatus.OK) {
+      //緯度・経度取得成功
+        //目的地をlatLngオブジェクト（緯度・経度情報）を保存
+        latLng[1] = results[0].geometry.location;
+        //現在位置取得開始
+        startWatchPosition();
+      }
+      else {
+      //緯度・経度取得失敗
+        //■位置表示クリア
+        clearPosition();
+        alert(addressInput + "：住所が見つかりませんでした。");
+      }
+    });
+}
+/*
+ 現在位置取得開始
+*/
+function startWatchPosition(){
+  if (navigator.geolocation) {
+     //現在の位置情報を定期的に取得
+     watchId = navigator.geolocation.watchPosition(successCallback, errorCallback,
+                 { maximumAge: 3000, timeout: 30000, enableHighAccuracy: true });
+  } else {
+    alert("ブラウザがGeolocationに対応していません。");
+  }
+}
+/*
+ 現在位置取得に成功した時の処理
+*/
+function successCallback(position) {
+  //現在位置をLatLngオブジェクトに変換
+  latLng[2] = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+  
+  if (latLng[1] != undefined && latLng[2] != undefined) {
+    //２点間の距離を取得
+    var distance = google.maps.geometry.spherical.computeDistanceBetween(latLng[2], latLng[1]) / 1000;
+    document.getElementById("distanceInfo").innerHTML = distance.toFixed(3) + "km";
+    
+    //最初に取得した距離を記憶
+    if (firstDistance == 0){
+        firstDistance = distance;
+    }
+    
+    //２点間の方角を取得
+    var heading = google.maps.geometry.spherical.computeHeading(latLng[2], latLng[1]);
+    
+    //北から東向きの方角は真北を0として時計回り180度まで。
+    //北から西向きの方角は真北を0として反時計回りマイナス180度まで。
+    
+    if (heading < 0) {
+      //わかりやすいようにマイナス値の場合は360度プラス
+      heading = heading + 360;
+    }
+    
+    //方角記号（8方向）を判定
+    var NESW = "";
+    if (heading >= 337.5 || heading < 22.5) {
+      NESW = "N";   //北
+    } else if (heading >= 22.5 && heading < 67.5) {
+      NESW = "NE";  //北東
+    } else if (heading >= 67.5 && heading < 112.5) {
+      NESW = "E";   //東
+    } else if (heading >= 112.5 && heading < 157.5) {
+      NESW = "SE";  //南東
+    } else if (heading >= 157.5 && heading < 202.5) {
+      NESW = "S";   //南
+    } else if (heading >= 202.5 && heading < 247.5) {
+      NESW = "SW";  //南西
+    } else if (heading >= 247.5 && heading < 292.5) {
+      NESW = "W";   //西
+    } else if (heading >= 292.5 && heading < 337.5) {
+      NESW = "NW";  //北西
+    }
+    
+    document.getElementById('headingInfo').innerHTML = NESW + " " + parseInt(heading) + "°";
+    
+    //■目的地Shapeの位置を設定
+    setPoint(distance, heading);
+  }
+}
+/*
+ 現在位置取得に失敗の時の処理
+*/
+function errorCallback(error) {
+  alert("Geolocationが利用できません");
+}
+/*
+ 現在位置取得停止
+*/
+function stopWatchPosition(){
+  navigator.geolocation.clearWatch(watchId);
+}
+</script>
+
+</body>
+</html>
