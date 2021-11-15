@@ -90,8 +90,8 @@ function init() {
   stage = new createjs.Stage("myCanvas");
   //音声ファイル読み込み
   createjs.Sound.registerSound("dr.mp3", "sound1");
-  createjs.Sound.registerSound("dr2.mp3", "sound2");
-  createjs.Sound.registerSound("dr3.mp3", "sound3");
+  createjs.Sound.registerSound("HeartBeat2.wav", "sound2");
+  createjs.Sound.registerSound("HeartBeat3.wav", "sound3");
   //ベースのデザインを作成
   createBaseDesign();
   //円の中の枠線を作成
@@ -284,6 +284,11 @@ function createPoint() {
   //中心点Shapeを作成
   shpCenter = new createjs.Shape();
   shpCenter.graphics.beginFill("red");
+<<<<<<< HEAD
+=======
+ shpCenter = new createjs.Shape();
+  shpCenter.graphics.beginFill("red");
+>>>>>>> 4e5345c86192b5672adb802ae90d65be829e8951
   shpCenter.graphics.moveTo(120, 170);
   shpCenter.graphics.lineTo(130, 180);
   shpCenter.graphics.lineTo(140,  170);
