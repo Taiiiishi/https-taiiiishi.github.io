@@ -284,11 +284,8 @@ function createPoint() {
   //中心点Shapeを作成
   shpCenter = new createjs.Shape();
   shpCenter.graphics.beginFill("red");
-<<<<<<< HEAD
-=======
- shpCenter = new createjs.Shape();
+  shpCenter = new createjs.Shape();
   shpCenter.graphics.beginFill("red");
->>>>>>> 4e5345c86192b5672adb802ae90d65be829e8951
   shpCenter.graphics.moveTo(120, 170);
   shpCenter.graphics.lineTo(130, 180);
   shpCenter.graphics.lineTo(140,  170);
@@ -326,7 +323,7 @@ function pointAnimation(){
     //短距離
       //アニメーション設定（ゆっくり速度）
       setAnimationFPS(8);
-      if (currentDistance <= 0.05) {
+      if (currentDistance <= 0.01) {
       //50m以内の場合
         //サウンド選択（3つ目のサウンド）
         soundType = "sound3";
