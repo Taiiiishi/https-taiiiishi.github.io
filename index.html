@@ -89,9 +89,9 @@ function init() {
   //Stageオブジェクトを作成
   stage = new createjs.Stage("myCanvas");
   //音声ファイル読み込み
-  createjs.Sound.registerSound("dr.mp3", "sound1");
-  createjs.Sound.registerSound("HeartBeat2.wav", "sound2");
-  createjs.Sound.registerSound("HeartBeat3.wav", "sound3");
+  createjs.Sound.registerSound("timer1.mp3", "sound1");
+  createjs.Sound.registerSound("timer2.mp3", "sound2");
+  createjs.Sound.registerSound("goal.mp3", "sound3");
   //ベースのデザインを作成
   createBaseDesign();
   //円の中の枠線を作成
@@ -324,7 +324,7 @@ function pointAnimation(){
       //アニメーション設定（ゆっくり速度）
       setAnimationFPS(8);
       if (currentDistance <= 0.01) {
-      //50m以内の場合
+      //10m以内の場合
         //サウンド選択（3つ目のサウンド）
         soundType = "sound3";
       }
@@ -422,8 +422,8 @@ function setPoint(distance, heading){
   else {
   //短距離
     scaleType = 4;
-    //最大距離は0.3km
-    maxDistance = 0.3;
+    //最大距離は0.03km
+    maxDistance = 0.03;
   }
   
   //現在の距離を記憶
