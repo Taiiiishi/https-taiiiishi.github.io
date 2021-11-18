@@ -413,7 +413,7 @@ function setPoint(distance, heading){
     //最大距離は5km
     maxDistance = 5;
   }
-  else if (distance > 0.3 && distance <= 3) {
+  else if (distance > 0.02 && distance <= 3) {
   //近距離
     scaleType = 3;
     //最大距離は3km
@@ -422,8 +422,8 @@ function setPoint(distance, heading){
   else {
   //短距離
     scaleType = 4;
-    //最大距離は0.3km
-    maxDistance = 0.3;
+    //最大距離は0.02km
+    maxDistance = 0.02;
   }
   
   //現在の距離を記憶
