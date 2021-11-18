@@ -323,8 +323,8 @@ function pointAnimation(){
     //短距離
       //アニメーション設定（ゆっくり速度）
       setAnimationFPS(8);
-      if (currentDistance <= 0.005) {
-      //5m以内の場合
+      if (currentDistance <= 0.01) {
+      //10m以内の場合
         //サウンド選択（3つ目のサウンド）
         soundType = "sound3";
       }
@@ -413,7 +413,7 @@ function setPoint(distance, heading){
     //最大距離は5km
     maxDistance = 5;
   }
-  else if (distance > 0.02 && distance <= 3) {
+  else if (distance > 0.05 && distance <= 3) {
   //近距離
     scaleType = 3;
     //最大距離は3km
@@ -422,8 +422,8 @@ function setPoint(distance, heading){
   else {
   //短距離
     scaleType = 4;
-    //最大距離は0.02km
-    maxDistance = 0.02;
+    //最大距離は0.05km
+    maxDistance = 0.05;
   }
   
   //現在の距離を記憶
